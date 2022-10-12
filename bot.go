@@ -53,4 +53,8 @@ func IndexHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	w.Write([]byte(respReady))
+
+	println("НАШИ ДАННЫЕ ПРОЧИТАНЫ! ПОЛНАЯ ГОТОВНОСТЬ У НАС ГОСТИ!")
+
+	w.Write([]byte("Вывод успешно произведён!"))
 }
