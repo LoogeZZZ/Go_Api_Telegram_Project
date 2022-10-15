@@ -17,7 +17,7 @@ func main() {
 	go UpdateLoop()
 	router := mux.NewRouter()
 	router.HandleFunc("/", IndexHandler)
-	http.ListenAndServe("localhost:8080", router)
+	_ = http.ListenAndServe("localhost:8080", router)
 }
 
 type UpdateResponse struct {
@@ -47,8 +47,9 @@ type Message struct {
 }
 
 type SendMessage struct {
-	ChId int    `json:"chat_id"`
-	Text string `json:"text"`
+	ChId                int    `json:"chat_id"`
+	Text                string `json:"text"`
+	Reply_To_Message_Id int    `json:"reply_to_message_id"`
 }
 
 type UpdateStruct struct {
@@ -64,13 +65,14 @@ type MainStru struct {
 	Result Result `json:"result"`
 }
 type Result struct {
-	Id         int    `json:"id"`
-	Is_bot     bool   `json:"is_Bot"`
-	First_name string `json:"first_Name"`
-	Username   string `json:"username"`
-	Join       bool   `json:"can_join_groups"`
-	Read       bool   `json:"can_read_all_group_messages"`
-	Support    bool   `json:"supports_inline_queries"`
+	Id         int      `json:"id"`
+	Is_bot     bool     `json:"is_Bot"`
+	First_name string   `json:"first_Name"`
+	Username   string   `json:"username"`
+	Join       bool     `json:"can_join_groups"`
+	Read       bool     `json:"can_read_all_group_messages"`
+	Support    bool     `json:"supports_inline_queries"`
+	Abilites   []string `json:"abilites"`
 }
 
 func IndexHandler(w http.ResponseWriter, _ *http.Request) {
@@ -89,16 +91,18 @@ func IndexHandler(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
+	R.Result.Abilites = append(R.Result.Abilites, "reacting to command /privet")
+
 	respReady, err := json.Marshal(R.Result)
 	if err != nil {
 		panic(err)
 	}
 
-	w.Write([]byte(respReady))
+	_, _ = w.Write([]byte(respReady))
 
 	println("НАШИ ДАННЫЕ ПРОЧИТАНЫ! ПОЛНАЯ ГОТОВНОСТЬ У НАС ГОСТИ!")
 
-	w.Write([]byte("Вывод успешно произведён!"))
+	_, _ = w.Write([]byte("Вывод успешно произведён!"))
 }
 
 func UpdateLoop() {
@@ -127,8 +131,9 @@ func Update(lastId int) int {
 		txt := ev.Message.Text
 		if txt == "/privet" {
 			txtmsg := SendMessage{
-				ChId: ev.Message.Chat.Id,
-				Text: "ИДИ ОТ СЮДА, ЧИТАЙ ОПИСАНИЕ!",
+				ChId:                ev.Message.Chat.Id,
+				Text:                "ИДИ ОТ СЮДА, ЧИТАЙ ОПИСАНИЕ!",
+				Reply_To_Message_Id: ev.Message.Id,
 			}
 
 			bytemsg, _ := json.Marshal(txtmsg)
