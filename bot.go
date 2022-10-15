@@ -1,23 +1,29 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"io"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 const apiUrl = "https://api.telegram.org/" + "bot5453963529:AAFv-sJb6OZoKjgofFpxteqNEPYqGRGTla0"
 
 func main() {
+	go UpdateLoop()
 	router := mux.NewRouter()
 	router.HandleFunc("/", IndexHandler)
 	http.ListenAndServe("localhost:8080", router)
 }
 
 type UpdateResponse struct {
-	Data []UpdateStruct `json:"data"`
+	Ok bool `json:"ok"`
+
+	Result []UpdateStruct `json:"result"`
 }
 
 type User struct {
@@ -37,6 +43,11 @@ type Message struct {
 	User User   `json:"from"`
 	Date int    `json:"date"`
 	Chat Chat   `json:"chat"`
+	Text string `json:"text"`
+}
+
+type SendMessage struct {
+	ChId int    `json:"chat_id"`
 	Text string `json:"text"`
 }
 
@@ -90,26 +101,46 @@ func IndexHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte("Вывод успешно произведён!"))
 }
 
-func Update() {
-	raw, err := http.Get(apiUrl + "/getUpdates")
+func UpdateLoop() {
+	lastId := 0
+	for {
+		lastId = Update(lastId)
+		time.Sleep(5 * time.Second)
+	}
+}
+
+func Update(lastId int) int {
+	raw, err := http.Get(apiUrl + "/getUpdates?offset=" + strconv.Itoa(lastId))
 	if err != nil {
 		panic(err)
 	}
 	body, _ := io.ReadAll(raw.Body)
 
-	var v []interface{}
+	var v UpdateResponse
 	err = json.Unmarshal(body, &v)
 	if err != nil {
 		panic(err)
 	}
 
-	for _, ev := range v {
-		t := ev.(UpdateStruct)
-		txt := t.Message.Text
+	if len(v.Result) > 0 {
+		ev := v.Result[len(v.Result)-1]
+		txt := ev.Message.Text
 		if txt == "/privet" {
+			txtmsg := SendMessage{
+				ChId: ev.Message.Chat.Id,
+				Text: "ИДИ ОТ СЮДА, ЧИТАЙ ОПИСАНИЕ!",
+			}
 
-			http.Post(apiUrl+"/sendMessage", "application/json", nil)
+			bytemsg, _ := json.Marshal(txtmsg)
+			_, err = http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
+			if err != nil {
+				fmt.Println(err)
+				return lastId
+			} else {
+				return ev.Id + 1
+			}
+
 		}
 	}
-
+	return lastId
 }
