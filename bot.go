@@ -17,7 +17,7 @@ func main() {
 	go UpdateLoop()
 	router := mux.NewRouter()
 	router.HandleFunc("/", IndexHandler)
-	_ = http.ListenAndServe("localhost:8080", router)
+	http.ListenAndServe("localhost:8080", router)
 }
 
 type UpdateResponse struct {
@@ -98,11 +98,11 @@ func IndexHandler(w http.ResponseWriter, _ *http.Request) {
 		panic(err)
 	}
 
-	_, _ = w.Write([]byte(respReady))
+	w.Write([]byte(respReady))
 
 	println("НАШИ ДАННЫЕ ПРОЧИТАНЫ! ПОЛНАЯ ГОТОВНОСТЬ У НАС ГОСТИ!")
 
-	_, _ = w.Write([]byte("Вывод успешно произведён!"))
+	w.Write([]byte("Вывод успешно произведён!"))
 }
 
 func UpdateLoop() {
