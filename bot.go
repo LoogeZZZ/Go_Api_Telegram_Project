@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -89,8 +90,64 @@ func Update(lastId int) int {
 			} else {
 				return ev.Id + 1
 			}
+		}
+		if txt == "/easter_egg" {
+			txtmsg := SendMessage{
+				ChId:                ev.Message.Chat.Id,
+				Text:                "https://www.youtube.com/watch?v=lIxM2rGKEV4",
+				Reply_To_Message_Id: ev.Message.Id,
+			}
 
+			bytemsg, _ := json.Marshal(txtmsg)
+			_, err = http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
+			if err != nil {
+				fmt.Println(err)
+				return lastId
+			} else {
+				return ev.Id + 1
+			}
+		}
+		var Bot_Name = "Олежа"
+		txt1 := ev.Message.Text
+
+		if strings.Contains(txt1, Bot_Name) {
+			if strings.Contains(txt1, "Расскажи анекдот") {
+			}
+			txtmsg := SendMessage{
+				ChId:                ev.Message.Chat.Id,
+				Text:                "Пьяный пьяный ежик влез на провода, током пиз**нуло пьного ежа.",
+				Reply_To_Message_Id: ev.Message.Id,
+			}
+
+			bytemsg, _ := json.Marshal(txtmsg)
+			_, err = http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
+			if err != nil {
+				fmt.Println(err)
+				return lastId
+			} else {
+				return ev.Id + 1
+			}
+		}
+		txt2 := ev.Message.Text
+		if strings.Contains(txt2, Bot_Name) {
+			if strings.Contains(txt2, "кто ты?") {
+			}
+			txtmsg := SendMessage{
+				ChId:                ev.Message.Chat.Id,
+				Text:                "Зовут Олежа, немного о себе. Парень сипотяга, по жизни бродяга, походка городская, жизнь воровскааая",
+				Reply_To_Message_Id: ev.Message.Id,
+			}
+
+			bytemsg, _ := json.Marshal(txtmsg)
+			_, err = http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
+			if err != nil {
+				fmt.Println(err)
+				return lastId
+			} else {
+				return ev.Id + 1
+			}
 		}
 	}
+
 	return lastId
 }
