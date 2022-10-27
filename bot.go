@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
 	"io"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 const apiUrl = "https://api.telegram.org/" + "bot5453963529:AAFv-sJb6OZoKjgofFpxteqNEPYqGRGTla0"
@@ -17,12 +19,15 @@ const apiUrl = "https://api.telegram.org/" + "bot5453963529:AAFv-sJb6OZoKjgofFpx
 func main() {
 	go UpdateLoop()
 	router := mux.NewRouter()
-	router.HandleFunc("/", IndexHandler)
-	http.ListenAndServe("localhost:8080", router)
+	router.HandleFunc("/api", IndexHandler)
+	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
+	_ = http.ListenAndServe("localhost:8000", router)
 }
 
 func IndexHandler(w http.ResponseWriter, _ *http.Request) {
 	var R MainStru
+
+	Ping() /// - Страница посещена
 
 	resp, err := http.Get(apiUrl + "/getMe")
 
@@ -37,31 +42,33 @@ func IndexHandler(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
-	R.Result.Abilites = append(R.Result.Abilites, "reacting to command /privet")
+	R.Result.Abilites = append(R.Result.Abilites, "reacting to commands")
 
 	respReady, err := json.Marshal(R.Result)
 	if err != nil {
 		panic(err)
 	}
 
-	w.Write([]byte(respReady))
+	_, _ = w.Write(respReady)
 
 	println("НАШИ ДАННЫЕ ПРОЧИТАНЫ! ПОЛНАЯ ГОТОВНОСТЬ У НАС ГОСТИ!")
 
 	w.Write([]byte("Вывод успешно произведён!"))
 }
 
+// Обращение//////////////////////////////////
+var appeal = "Олежа"
+
 func UpdateLoop() {
-	lastid := 0
-	nickname := "олежа"
+	lastId := 0
 	for {
-		lastid = Update(lastid, &nickname)
-		time.Sleep(5 * time.Second)
+		lastId = Update(lastId)
+		time.Sleep(5 * time.Millisecond)
 	}
 }
 
-func Update(lastid int, nickname *string) int {
-	raw, err := http.Get(apiUrl + "/getUpdates?offset=" + strconv.Itoa(lastid))
+func Update(lastId int) int {
+	raw, err := http.Get(apiUrl + "/getUpdates?offset=" + strconv.Itoa(lastId))
 	if err != nil {
 		panic(err)
 	}
@@ -75,63 +82,121 @@ func Update(lastid int, nickname *string) int {
 
 	if len(v.Result) > 0 {
 		ev := v.Result[len(v.Result)-1]
-		txt := ev.Message.Text
-		txtmsg := SendMessage{
-			ChId:                ev.Message.Chat.Id,
-			Text:                "Непонял обратись нормально! Меня зовут " + *nickname,
-			Reply_To_Message_Id: ev.Message.Id,
-		}
-
-		if strings.Contains(strings.ToLower(txt), *nickname) {
-			if strings.Contains(strings.ToLower(txt), "по пивку") {
-				txtmsg = SendMessage{
-					ChId:                ev.Message.Chat.Id,
-					Text:                "да давай",
-					Reply_To_Message_Id: ev.Message.Id,
-				}
-			} else if strings.Contains(strings.ToLower(txt), "расскажи анекдот") {
-				txtmsg = SendMessage{
-					ChId:                ev.Message.Chat.Id,
-					Text:                "Пьяный пьяный ежик влез на провода, током пиз**нуло пьного ежа.",
-					Reply_To_Message_Id: ev.Message.Id,
-				}
-			} else {
-				txtmsg = SendMessage{
-					ChId:                ev.Message.Chat.Id,
-					Text:                "Чё надо?",
-					Reply_To_Message_Id: ev.Message.Id,
-				}
+		txt := strings.ToLower(ev.Message.Text)
+		if txt == "/privet" {
+			txtmsg := SendMessage{
+				ChId:                ev.Message.Chat.Id,
+				Text:                "Hello!",
+				Reply_To_Message_Id: ev.Message.Id,
 			}
-		}
 
-		if strings.Contains(strings.ToLower(txt), "я буду называть тебя ") {
-			if len(strings.SplitAfter(txt, "я буду называть тебя ")) > 1 {
-				*nickname = strings.SplitAfter(txt, "я буду называть тебя ")[1]
-				txtmsg = SendMessage{
-					ChId:                ev.Message.Chat.Id,
-					Text:                "Теперь я " + *nickname,
-					Reply_To_Message_Id: ev.Message.Id,
-				}
+			bytemsg, _ := json.Marshal(txtmsg)
+			_, err = http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
+			if err != nil {
+				fmt.Println(err)
+				return lastId
 			} else {
-				txtmsg = SendMessage{
-					ChId:                ev.Message.Chat.Id,
-					Text:                "Нормально назови",
-					Reply_To_Message_Id: ev.Message.Id,
+				return ev.Id + 1
+			}
+
+		}
+		/////////////////////////// 22.10.22
+		if strings.Split(txt, ", ")[0] == appeal {
+
+			switch strings.Split(strings.Split(txt, ", ")[1], ": ")[0] {
+			case "расскажи анекдот":
+				{
+					return Anek(lastId, ev)
+				}
+			case "сгенерируй число":
+				{
+					return RandGen(lastId, ev, txt)
+				}
+			case "измени обращение на":
+				{
+					if strings.Contains(txt, ": ") {
+						return ChangeName(lastId, ev, txt)
+					} else {
+						fmt.Println("error")
+					}
 				}
 			}
 
 		}
+	}
+	return lastId
+}
 
-		bytemsg, _ := json.Marshal(txtmsg)
-		_, err := http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
-		if err != nil {
-			fmt.Println(err)
-			return lastid
-		} else {
-			return ev.Id + 1
-		}
-
+func Anek(lastId int, ev UpdateStruct) int {
+	txtmsg := SendMessage{
+		ChId: ev.Message.Chat.Id,
+		Text: "Пьяный пьяный ежик влез на провода, током пиз**нуло пьяного ежа.",
 	}
 
-	return lastid
+	bytemsg, _ := json.Marshal(txtmsg)
+	_, err := http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
+	if err != nil {
+		fmt.Println(err)
+		return lastId
+	} else {
+		return ev.Id + 1
+	}
+}
+
+func RandGen(lastId int, ev UpdateStruct, txt string) int {
+	fmt.Println("Randgen")
+	retotal := strings.Split(txt, "до ")[1]
+	s, err := strconv.Atoi(retotal)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(s)
+	num := strconv.Itoa(rand.Intn(s))
+	txtmsg := SendMessage{
+		ChId: ev.Message.Chat.Id,
+		Text: "Сгенерированное число: " + num,
+	}
+
+	bytemsg, _ := json.Marshal(txtmsg)
+	_, err = http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
+
+	if err != nil {
+		fmt.Println(err)
+		return lastId
+	} else {
+		return ev.Id + 1
+	}
+}
+
+func ChangeName(lastId int, ev UpdateStruct, txt string) int {
+	newap := strings.Split(txt, "измени обращение на: ")
+	appeal = newap[1]
+	fmt.Println(appeal)
+	txtmsg := SendMessage{
+		ChId: ev.Message.Chat.Id,
+		Text: "Обращение изменено на: " + appeal,
+	}
+
+	bytemsg, _ := json.Marshal(txtmsg)
+	_, err := http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
+
+	if err != nil {
+		fmt.Println(err)
+		return lastId
+	} else {
+		return ev.Id + 1
+	}
+}
+
+func Ping() {
+	txtmsg := SendMessage{
+		ChId: 690215801,
+		Text: "Страница посещена",
+	}
+
+	bytemsg, _ := json.Marshal(txtmsg)
+	_, err := http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
+	if err != nil {
+		fmt.Println(err)
+	}
 }
