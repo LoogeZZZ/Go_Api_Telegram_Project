@@ -57,7 +57,7 @@ func IndexHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 // Обращение//////////////////////////////////
-var appeal = "Олежа"
+var appeal = "олежа"
 
 func UpdateLoop() {
 	lastId := 0
@@ -108,7 +108,7 @@ func Update(lastId int) int {
 				{
 					return Anek(lastId, ev)
 				}
-			case "сгенерируй число":
+			case "сгенерируй число ":
 				{
 					return RandGen(lastId, ev, txt)
 				}

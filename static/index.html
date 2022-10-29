@@ -1,74 +1,22 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
-    <style>
-        body {
-            margin: 0;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-        }
-
-        button {
-            width: 80px;
-            height: 20px;
-        }
-
-        .SlideBox {
-            background: #212126;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 800px;
-            height: 400px;
-            border: 5px solid black;
-        }
-
-        .Slide {
-            width: inherit;
-            height: inherit;
-        }
-    </style>
 </head>
 <body>
-<button class="prev" onclick="plusSlides(-1)">prev</button>
-<div class="SlideBox">
-    <div class="Slide"><img src="https://i.pinimg.com/originals/99/77/6f/99776fbc98d0fdabd066515a74f7492a.jpg" style="width: inherit; height: inherit;"> <a href="youtube.com">youtube</a></div>
-    <div class="Slide"><img src="https://www.soldiermod.com/volume-23/images/articles/innovation/raytheon-elcan-1.jpg" style="width: inherit; height: inherit;"></div>
-    <div class="Slide"><img src="http://i.imgur.com/uGeeZxi.jpg" style="width: inherit; height: inherit;"></div>
-</div>
-<button class="next" onclick="plusSlides(1)">next</button>
+<textarea id="output", height="300", width="500"></textarea>
+<p></p>
+<button id="name", type="button", onclick="getName()">Bot's current name</button>
+<button id="eventId", onclick="getEventId()">Get current event Id</button>
 <script>
-    var slideIndex = 1;
-    showSlides(slideIndex);
-
-    function plusSlides(n) {
-        showSlides(slideIndex += n);
-    }
-
-    function currentSlide(n) {
-        showSlides(slideIndex = n);
-    }
-
-    function showSlides(n) {
-        var i;
-        var slides = document.getElementsByClassName("Slide");
-        if (n > slides.length) {
-            slideIndex = 1
-        }
-        if (n < 1) {
-            slideIndex = slides.length
-        }
-        for (i = 0; i < slides.length; i++) {
-            slides[i].style.display = "none";
-        }
-        slides[slideIndex-1].style.display = "block";
-    }
+    function getName() {
+}
+function getEventId() {
+}
 </script>
 </body>
 </html>
