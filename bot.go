@@ -2,24 +2,39 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
+	"github.com/mattn/go-sqlite3"
 	"io"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/gorilla/mux"
 )
 
 const apiUrl = "https://api.telegram.org/" + "bot5453963529:AAFv-sJb6OZoKjgofFpxteqNEPYqGRGTla0"
 
 func main() {
+
+	sql.Register("sqlite3_with_extensions",
+		&sqlite3.SQLiteDriver{
+			Extensions: []string{
+				"sqlite3_mod_regexp",
+			},
+		})
+
+	_, err := sql.Open("sqlite3", "file:database.db")
+	if err != nil {
+		panic(err)
+	}
+
 	go UpdateLoop()
 	router := mux.NewRouter()
 	router.HandleFunc("/api", IndexHandler)
+	router.HandleFunc("/botName", NameHandler)
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
 	_ = http.ListenAndServe("localhost:8000", router)
 }
@@ -56,13 +71,27 @@ func IndexHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte("Вывод успешно произведён!"))
 }
 
+func NameHandler(w http.ResponseWriter, _ *http.Request) {
+	w.Write([]byte(appeal))
+}
+
 // Обращение//////////////////////////////////
 var appeal = "олежа"
 
 func UpdateLoop() {
-	lastId := 0
+	db, err := sql.Open("sqlite3", "file:database.db")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close() //закрывает коннект при закрытии программы
+
+	lastId := -1
 	for {
-		lastId = Update(lastId)
+		newId := Update(lastId)
+		if lastId != newId {
+
+			lastId = newId
+		}
 		time.Sleep(5 * time.Millisecond)
 	}
 }
@@ -172,14 +201,18 @@ func ChangeName(lastId int, ev UpdateStruct, txt string) int {
 	newap := strings.Split(txt, "измени обращение на: ")
 	appeal = newap[1]
 	fmt.Println(appeal)
+	db, err := sql.Open("sqlite3", "file:database.db")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()   //закрывает коннект при закрытии программы или выходе из зоны видимости
+	db.Exec(`UPDATE `) // новое имя в таблицу bot_status
 	txtmsg := SendMessage{
 		ChId: ev.Message.Chat.Id,
 		Text: "Обращение изменено на: " + appeal,
 	}
-
 	bytemsg, _ := json.Marshal(txtmsg)
-	_, err := http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
-
+	_, err = http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
 	if err != nil {
 		fmt.Println(err)
 		return lastId

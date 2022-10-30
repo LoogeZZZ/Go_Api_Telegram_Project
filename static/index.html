@@ -14,7 +14,12 @@
 <button id="eventId", onclick="getEventId()">Get current event Id</button>
 <script>
     function getName() {
-}
+        resp = fetch("/botName").then(function (response){
+            return response.text()}).then(function (gotText){
+            document.getElementById("output").textContent = document.getElementById("output").textContent + gotText + "\n"
+        })
+
+    }
 function getEventId() {
 }
 </script>
