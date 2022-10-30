@@ -26,7 +26,7 @@ func main() {
 			},
 		})
 
-	_, err := sql.Open("sqlite3", "file:database.db")
+	_, err := sql.Open("sqlite3", "db/APIBOTSTATUS.sql")
 	if err != nil {
 		panic(err)
 	}
@@ -72,14 +72,28 @@ func IndexHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func NameHandler(w http.ResponseWriter, _ *http.Request) {
-	w.Write([]byte(appeal))
+	db, err := sql.Open("sqlite3", "db/APIBOTSTATUS.sql")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	var gotname string
+	var resp sql.NullString // для результата
+	err = db.QueryRow("SELECT name FROM bot_status").Scan(&resp)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if resp.Valid { // если результат валид
+		gotname = resp.String // берём оттуда обычный string
+	}
+	w.Write([]byte(gotname))
 }
 
 // Обращение//////////////////////////////////
 var appeal = "олежа"
 
 func UpdateLoop() {
-	db, err := sql.Open("sqlite3", "file:database.db")
+	db, err := sql.Open("sqlite3", "db/APIBOTSTATUS.sql")
 	if err != nil {
 		panic(err)
 	}
@@ -201,7 +215,7 @@ func ChangeName(lastId int, ev UpdateStruct, txt string) int {
 	newap := strings.Split(txt, "измени обращение на: ")
 	appeal = newap[1]
 	fmt.Println(appeal)
-	db, err := sql.Open("sqlite3", "file:database.db")
+	db, err := sql.Open("sqlite3", "db/APIBOTSTATUS.sql")
 	if err != nil {
 		panic(err)
 	}
