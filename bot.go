@@ -25,11 +25,11 @@ func main() {
 				"sqlite3_mod_regexp",
 			},
 		})
-
-	_, err := sql.Open("sqlite3", "db/APIBOTSTATUS.sql")
-	if err != nil {
-		panic(err)
-	}
+	//
+	//_, err := sql.Open("sqlite3", "APIBOTSTATUS.sql")
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	go UpdateLoop()
 	router := mux.NewRouter()
@@ -72,7 +72,7 @@ func IndexHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func NameHandler(w http.ResponseWriter, _ *http.Request) {
-	db, err := sql.Open("sqlite3", "db/APIBOTSTATUS.sql")
+	db, err := sql.Open("sqlite3", "APIBOTSTATUS.sql")
 	if err != nil {
 		panic(err)
 	}
@@ -90,27 +90,32 @@ func NameHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 // Обращение//////////////////////////////////
-var appeal = "олежа"
+//var appeal = "олежа"
 
 func UpdateLoop() {
-	db, err := sql.Open("sqlite3", "db/APIBOTSTATUS.sql")
+	db, err := sql.Open("sqlite3", "APIBOTSTATUS.sql")
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close() //закрывает коннект при закрытии программы
+	lastId := 0
+	var nickname1 string
+	err = db.QueryRow(`select name from bot_status`).Scan(&nickname1)
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	lastId := -1
 	for {
-		newId := Update(lastId)
+		newId := Update(lastId, &nickname1)
 		if lastId != newId {
-
 			lastId = newId
+			db.Exec(`update bot_status set lastid = $1`, lastId)
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
 }
 
-func Update(lastId int) int {
+func Update(lastId int, nickname *string) int {
 	raw, err := http.Get(apiUrl + "/getUpdates?offset=" + strconv.Itoa(lastId))
 	if err != nil {
 		panic(err)
@@ -144,7 +149,7 @@ func Update(lastId int) int {
 
 		}
 		/////////////////////////// 22.10.22
-		if strings.Split(txt, ", ")[0] == appeal {
+		if strings.Split(txt, ", ")[0] == *nickname {
 
 			switch strings.Split(strings.Split(txt, ", ")[1], ": ")[0] {
 			case "расскажи анекдот":
@@ -158,7 +163,7 @@ func Update(lastId int) int {
 			case "измени обращение на":
 				{
 					if strings.Contains(txt, ": ") {
-						return ChangeName(lastId, ev, txt)
+						return ChangeName(lastId, ev, txt, nickname)
 					} else {
 						fmt.Println("error")
 					}
@@ -211,19 +216,19 @@ func RandGen(lastId int, ev UpdateStruct, txt string) int {
 	}
 }
 
-func ChangeName(lastId int, ev UpdateStruct, txt string) int {
-	newap := strings.Split(txt, "измени обращение на: ")
-	appeal = newap[1]
-	fmt.Println(appeal)
-	db, err := sql.Open("sqlite3", "db/APIBOTSTATUS.sql")
+func ChangeName(lastId int, ev UpdateStruct, txt string, nickname *string) int {
+	new := strings.Split(txt, "измени обращение на: ")
+	*nickname = new[1]
+	fmt.Println(nickname)
+	db, err := sql.Open("sqlite3", "APIBOTSTATUS.sql")
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()   //закрывает коннект при закрытии программы или выходе из зоны видимости
-	db.Exec(`UPDATE `) // новое имя в таблицу bot_status
+	defer db.Close()                                     //закрывает коннект при закрытии программы или выходе из зоны видимости
+	db.Exec(`UPDATE bot_status set name =$1`, *nickname) // новое имя в таблицу bot_status
 	txtmsg := SendMessage{
 		ChId: ev.Message.Chat.Id,
-		Text: "Обращение изменено на: " + appeal,
+		Text: "Обращение изменено на: " + *nickname,
 	}
 	bytemsg, _ := json.Marshal(txtmsg)
 	_, err = http.Post(apiUrl+"/sendMessage", "application/json", bytes.NewReader(bytemsg))
