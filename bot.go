@@ -25,18 +25,29 @@ func main() {
 				"sqlite3_mod_regexp",
 			},
 		})
-	//
-	//_, err := sql.Open("sqlite3", "APIBOTSTATUS.sql")
-	//if err != nil {
-	//	panic(err)
-	//}
+
+	_, err := sql.Open("sqlite3", "APIBOTSTATUS.sql")
+	if err != nil {
+		panic(err)
+	}
 
 	go UpdateLoop()
 	router := mux.NewRouter()
 	router.HandleFunc("/api", IndexHandler)
 	router.HandleFunc("/botName", NameHandler)
+	router.HandleFunc("/lastId", LastIdHandler)
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
+	router.HandleFunc("/login", IndexLogin)
+	router.HandleFunc("/register", IndexRegister)
 	_ = http.ListenAndServe("localhost:8000", router)
+}
+
+func IndexLogin(w http.ResponseWriter, _ *http.Request) {
+
+}
+
+func IndexRegister(w http.ResponseWriter, _ *http.Request) {
+
 }
 
 func IndexHandler(w http.ResponseWriter, _ *http.Request) {
@@ -91,6 +102,24 @@ func NameHandler(w http.ResponseWriter, _ *http.Request) {
 
 // Обращение//////////////////////////////////
 //var appeal = "олежа"
+
+func LastIdHandler(w http.ResponseWriter, _ *http.Request) {
+	db, err := sql.Open("sqlite3", "APIBOTSTATUS.sql")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	var gotlastid string
+	var resp sql.NullString // для результата
+	err = db.QueryRow("SELECT lastid FROM bot_status").Scan(&resp)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if resp.Valid { // если результат валид
+		gotlastid = resp.String // берём оттуда обычный string
+	}
+	w.Write([]byte(gotlastid))
+}
 
 func UpdateLoop() {
 	db, err := sql.Open("sqlite3", "APIBOTSTATUS.sql")
@@ -251,4 +280,8 @@ func Ping() {
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+func AuthCheak() {
+
 }
